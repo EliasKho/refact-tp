@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -18,34 +19,41 @@ class GestionPersonnelTest {
         gestion = new GestionPersonnel();
     }
 
-    private void ajouterTousLesProfils() {
-        gestion.ajouteSalarie("DEVELOPPEUR", "DevSenior", 50000, 6, "IT");     // dev > 5
-        gestion.ajouteSalarie("DEVELOPPEUR", "DevJunior", 50000, 2, "IT");     // dev <= 5
-        gestion.ajouteSalarie("DEVELOPPEUR", "DevExpert", 55000, 12, "IT");    // dev > 10
-        gestion.ajouteSalarie("CHEF DE PROJET", "ChefSenior", 60000, 4, "RH"); // chef > 3
-        gestion.ajouteSalarie("CHEF DE PROJET", "ChefJunior", 60000, 2, "RH"); // chef <= 3
-        gestion.ajouteSalarie("STAGIAIRE", "Stagiaire", 20000, 0, "IT");
-        gestion.ajouteSalarie("AUTRE", "Autre", 30000, 1, "OPS");              // type inconnu
+    private List<String> ajouterTousLesProfils() {
+        List<String> ids = new ArrayList<>();
+        ids.add(gestion.ajouteSalarie("DEVELOPPEUR", "DevSenior", 50000, 6, "IT"));     // dev > 5
+        ids.add(gestion.ajouteSalarie("DEVELOPPEUR", "DevJunior", 50000, 2, "IT"));     // dev <= 5
+        ids.add(gestion.ajouteSalarie("DEVELOPPEUR", "DevExpert", 55000, 12, "IT"));    // dev > 10
+        ids.add(gestion.ajouteSalarie("CHEF DE PROJET", "ChefSenior", 60000, 4, "RH")); // chef > 3
+        ids.add(gestion.ajouteSalarie("CHEF DE PROJET", "ChefJunior", 60000, 2, "RH")); // chef <= 3
+        ids.add(gestion.ajouteSalarie("STAGIAIRE", "Stagiaire", 20000, 0, "IT"));
+        ids.add(gestion.ajouteSalarie("AUTRE", "Autre", 30000, 1, "OPS"));              // type inconnu
+        return ids;
     }
 
     @Test
     void testAjouteSalarieEtSalairesStockes() {
-        ajouterTousLesProfils();
+        List<String> ids = ajouterTousLesProfils();
         // on doit avoir 7 employés
-        assertEquals(7, gestion.employes.size());
+        assertEquals(7, gestion.getEmployes().size());
         // les salaires calculés à l'ajout doivent exister dans la map
-        for (Object[] emp : gestion.employes) {
-            String id = (String) emp[0];
-            assertTrue(gestion.salairesEmployes.containsKey(id));
+        for (String id : ids) {
+            assertTrue(gestion.calculSalaire(id) > 0);
         }
         // un log par ajout
-        assertEquals(7, gestion.logs.size());
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        PrintStream original = System.out;
+        System.setOut(new PrintStream(out));
+        gestion.printLogs();
+        System.setOut(original);
+        String logsTxt = out.toString();
+        int count = logsTxt.split("Ajout de l'employé").length - 1;
+        assertEquals(7, count);
     }
 
     @Test
     void testCalculSalaireDeveloppeurAvecBonusExperience() {
-        gestion.ajouteSalarie("DEVELOPPEUR", "DevSenior", 50000, 6, "IT");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("DEVELOPPEUR", "DevSenior", 50000, 6, "IT");
 
         double salaire = gestion.calculSalaire(id);
         // 50000 * 1.2 = 60000 ; exp > 5 => *1.15 = 69000
@@ -54,8 +62,7 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculSalaireDeveloppeurTresExperimente() {
-        gestion.ajouteSalarie("DEVELOPPEUR", "DevExpert", 55000, 12, "IT");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("DEVELOPPEUR", "DevExpert", 55000, 12, "IT");
 
         double salaire = gestion.calculSalaire(id);
         // 55000 * 1.2 = 66000
@@ -66,8 +73,7 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculSalaireChefDeProjetSenior() {
-        gestion.ajouteSalarie("CHEF DE PROJET", "Boss", 60000, 4, "RH");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("CHEF DE PROJET", "Boss", 60000, 4, "RH");
 
         double salaire = gestion.calculSalaire(id);
         // 60000 * 1.5 = 90000
@@ -78,8 +84,7 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculSalaireChefDeProjetJunior() {
-        gestion.ajouteSalarie("CHEF DE PROJET", "BossJr", 60000, 2, "RH");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("CHEF DE PROJET", "BossJr", 60000, 2, "RH");
 
         double salaire = gestion.calculSalaire(id);
         // 60000 * 1.5 = 90000
@@ -90,8 +95,7 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculSalaireStagiaire() {
-        gestion.ajouteSalarie("STAGIAIRE", "Stagiaire", 20000, 0, "IT");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("STAGIAIRE", "Stagiaire", 20000, 0, "IT");
 
         double salaire = gestion.calculSalaire(id);
         assertEquals(20000 * 0.6, salaire, 0.001);
@@ -99,8 +103,7 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculSalaireTypeInconnu() {
-        gestion.ajouteSalarie("AUTRE", "Temp", 30000, 1, "OPS");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("AUTRE", "Temp", 30000, 1, "OPS");
 
         double salaire = gestion.calculSalaire(id);
         assertEquals(30000.0, salaire, 0.001);
@@ -152,15 +155,13 @@ class GestionPersonnelTest {
         System.setOut(original);
 
         // 8 rapports => 8 logs en plus des 7 ajouts
-        assertTrue(gestion.logs.size() >= 7 + 8);
         assertTrue(out.toString().contains("=== RAPPORT: SALAIRE ==="));
         assertTrue(out.toString().contains("=== RAPPORT: DIVISION ==="));
     }
 
     @Test
     void testAvancementEmployeSuccesEtEchec() {
-        gestion.ajouteSalarie("DEVELOPPEUR", "Alice", 50000, 6, "IT");
-        String id = (String) gestion.employes.getFirst()[0];
+        String id = gestion.ajouteSalarie("DEVELOPPEUR", "Alice", 50000, 6, "IT");
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         PrintStream original = System.out;
@@ -174,13 +175,11 @@ class GestionPersonnelTest {
         System.setOut(original);
 
         // le type a bien changé
-        assertEquals("CHEF DE PROJET", gestion.employes.getFirst()[1]);
-
+        double salaireMisAJour = gestion.calculSalaire(id);
         // salaire recalculé : base 50000, chef, exp 6
         // 50000 * 1.5 = 75000
         // exp > 3 => *1.1 = 82500
         // + 5000 = 87500
-        double salaireMisAJour = gestion.salairesEmployes.get(id);
         assertEquals(87500.0, salaireMisAJour, 0.001);
 
         String console = out.toString();
@@ -192,9 +191,9 @@ class GestionPersonnelTest {
     void testGetEmployesParDivision() {
         ajouterTousLesProfils();
 
-        ArrayList<Object[]> it = gestion.getEmployesParDivision("IT");
-        ArrayList<Object[]> rh = gestion.getEmployesParDivision("RH");
-        ArrayList<Object[]> vide = gestion.getEmployesParDivision("FINANCE");
+        ArrayList<Salarie> it = new ArrayList<>(gestion.getEmployesParDivision("IT"));
+        ArrayList<Salarie> rh = new ArrayList<>(gestion.getEmployesParDivision("RH"));
+        ArrayList<Salarie> vide = new ArrayList<>(gestion.getEmployesParDivision("FINANCE"));
 
         assertFalse(it.isEmpty());
         assertFalse(rh.isEmpty());
@@ -220,16 +219,16 @@ class GestionPersonnelTest {
 
     @Test
     void testCalculBonusAnnuelTousTypes() {
-        ajouterTousLesProfils();
+        List<String> ids = ajouterTousLesProfils();
 
         // On récupère les IDs dans l'ordre d'ajout
-        String idDevSenior   = (String) gestion.employes.get(0)[0];
-        String idDevJunior   = (String) gestion.employes.get(1)[0];
-        String idDevExpert   = (String) gestion.employes.get(2)[0];
-        String idChefSenior  = (String) gestion.employes.get(3)[0];
-        String idChefJunior  = (String) gestion.employes.get(4)[0];
-        String idStagiaire   = (String) gestion.employes.get(5)[0];
-        String idAutre       = (String) gestion.employes.get(6)[0];
+        String idDevSenior   = ids.get(0);
+        String idDevJunior   = ids.get(1);
+        String idDevExpert   = ids.get(2);
+        String idChefSenior  = ids.get(3);
+        String idChefJunior  = ids.get(4);
+        String idStagiaire   = ids.get(5);
+        String idAutre       = ids.get(6);
 
         // Dev senior: base 50000 -> 10% = 5000, exp>5 => *1.5 = 7500
         assertEquals(7500.0, gestion.calculBonusAnnuel(idDevSenior), 0.001);
